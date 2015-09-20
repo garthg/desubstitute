@@ -5,7 +5,7 @@ Usage:
   - or -
   python desubstitute.py <word_count_file> <rotation> <cleartext>
 
-The word count file should be "word{tab}count", one per line, preferably sorted
+The word count file should be "word[tab]count", one per line, preferably sorted
 in descending order by count.
 
 If invoked with two arguments, the solver will attempt to crack the ciphertext.
