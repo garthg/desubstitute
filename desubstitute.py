@@ -14,15 +14,22 @@ If invoked with three arguments, the cleartext will be encrypted with a
 rotation cipher of the given distance, and then the solver will attempt to crack
 the encrypted text.
 
+Algorithm:
+
+The solver prioritizes solving common letters first, and pursues cracking paths
+with the highest sum of possible matching words from the partial deciphering,
+based on the word counts loaded from the passed file.
+
 Improvements:
 
 Right now, the solver will guess the highest probability individual words, but
 does not take into account multiple word probabilities. It would be good to add
 word bigram probabilities. 
 
-The solver does not do well with unknown words, or uncommon words in short
-phrases. This could be helped by adding a language model based on letters as
-well as the one based on words, such as single letter or pair letter frequency.
+The solver does not do well with words in the cleartext that are not in the
+passed word count file, or with uncommon words in short phrases. These problems
+would be improved by including a language model based on letters as well as the
+one based on words, such as single letter or pair letter frequency.
 
 Also, it does not handle punctuation or numbers in the cleartext.
 """
@@ -107,6 +114,12 @@ class Desubstitute(object):
     # Cache word scores for speed.
     self.word_score_cache = {}
 
+  """score_unknown_word: Scores an unknown word.
+
+  Currently returns 0 and lets score_words(...) set the penalty, but kept as a
+  separate function for easier experimentation with setting the penalty based
+  on the word contents instead of for the whole phrase.
+  """
   def score_unknown_word(self, word):
     # This is the old version.
     return 0
@@ -186,20 +199,14 @@ class Desubstitute(object):
   """
   @staticmethod
   def choose_weakest_letter(tokens, cipher):
-    # Choose the most common letter.
+    # Choose the most common un-deciphered letter.
     # TODO Possibly combine with a heuristic for prioritizing "almost finished"
     # whole words.
     letter_counts = collections.defaultdict(int)
     for t in tokens:
-      for c in t:
+      for c in filter(lambda x: x not in cipher.decipher, t):
         letter_counts[c] += 1
-    count = 0 
-    letter = None
-    for l,c in letter_counts.iteritems():
-      if c > count and l not in cipher.decipher:
-        letter = l
-        count = c
-    return letter
+    return max([(v,k) for k,v in letter_counts.iteritems()])[1]
 
   """_scored_node: Return a node tuple from the given components.
 
